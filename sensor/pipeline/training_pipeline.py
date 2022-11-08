@@ -103,7 +103,6 @@ class TrainPipeline:
         try:
             
             TrainPipeline.is_pipeline_running=True
-
             data_ingestion_artifact:DataIngestionArtifact = self.start_data_ingestion()
             data_validation_artifact=self.start_data_validaton(data_ingestion_artifact=data_ingestion_artifact)
             data_transformation_artifact = self.start_data_transformation(data_validation_artifact=data_validation_artifact)
