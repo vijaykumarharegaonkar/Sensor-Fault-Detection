@@ -1,13 +1,15 @@
 from sensor.configuration.mongo_db_connection import MongoDBClient
 from sensor.exception import SensorException
 import os,sys
+import pandas as pd
 from sensor.logger import logging
 from sensor.pipeline import training_pipeline
 from sensor.pipeline.training_pipeline import TrainPipeline
 import os
+import json
 from sensor.utils.main_utils import read_yaml_file
 from sensor.constant.training_pipeline import SAVED_MODEL_DIR
-from fastapi import FastAPI
+from fastapi import FastAPI,File,UploadFile
 from sensor.constant.application import APP_HOST, APP_PORT
 from starlette.responses import RedirectResponse
 from uvicorn import run as app_run
@@ -54,13 +56,26 @@ async def train_route():
     except Exception as e:
         return Response(f"Error Occurred! {e}")
 
-@app.get("/predict")
-async def predict_route():
+def convertBytesToString(bytes):
+    data = bytes.decode('utf-8').splitlines()
+    df = pd.DataFrame(data)
+   # print(df)
+    return parse_csv(df)
+
+def parse_csv(df):
+    result = df.to_json(orient="records")
+    parsed = json.loads(result)
+    return parsed
+
+@app.post("/predict")
+async def predict_route(file: UploadFile = File(...)):
     try:
         #get data from user csv file
         #conver csv file to dataframe
-
-        df=None
+        contents = await file.read()
+        df = convertBytesToString(contents)
+        print(df)
+        #df=None
         model_resolver = ModelResolver(model_dir=SAVED_MODEL_DIR)
         if not model_resolver.is_model_exists():
             return Response("Model is not available")
@@ -87,6 +102,6 @@ def main():
 
 
 if __name__=="__main__":
-    #main()
-    # set_env_variable(env_file_path)
+    #main()  #Comment this only for deployment purposes on AWS
+    #sset_env_variable(env_file_path)  ##Comment this only for deployment purposes on AWS
     app_run(app, host=APP_HOST, port=APP_PORT)
